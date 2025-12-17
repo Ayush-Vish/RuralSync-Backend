@@ -5,6 +5,7 @@ import authRoutes from './modules/auth/auth.routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import cookieParser from 'cookie-parser';
+import clientRoutes from './modules/client/client.routes';
 const app = express();
 
 app.use(cookieParser());
@@ -18,6 +19,7 @@ app.use(express.json());
 
 // Mount Modules
 app.use('/auth', authRoutes);
+app.use('/client', clientRoutes);
 
 
 export default app;

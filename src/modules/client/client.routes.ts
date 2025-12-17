@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyJWT } from '../../middleware/auth.middleware';
-import { bookingController, clientController, reviewController } from './index';
+import { bookingController, clientController, reviewController, catalogController } from './index';
 
 const router = Router();
 
@@ -20,5 +20,7 @@ router.put('/reviews/:reviewId', verifyJWT('CLIENT'), reviewController.update);
 router.delete('/reviews/:reviewId', verifyJWT('CLIENT'), reviewController.delete);
 // Public route to see reviews for a provider
 router.get('/reviews/provider/:serviceProviderId', reviewController.getByProvider);
-
+router.get('/services', catalogController.getAllServices);
+router.get('/services/providers', catalogController.getAllServiceProviders); // Specific path before :id
+router.get('/services/:id', catalogController.getServiceById);
 export default router;

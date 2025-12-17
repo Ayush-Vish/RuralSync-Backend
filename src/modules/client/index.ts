@@ -3,7 +3,7 @@ import { Booking } from '../../models/booking.model';
 import { Client } from '../../models/client.model';
 import { Service } from '../../models/service.model';
 import { ServiceProvider } from '../../models/serviceProvider.model';
-import { Review } from '../../models/review.model'; // Make sure to export this model!
+import { Review } from '../../models/review.model';
 
 // Shared
 import { EmailNotificationStrategy } from '../shared/providers/email.provider';
@@ -12,11 +12,13 @@ import { EmailNotificationStrategy } from '../shared/providers/email.provider';
 import { BookingService } from './services/booking.service';
 import { ClientService } from './services/client.service';
 import { ReviewService } from './services/review.service';
+import { ServiceCatalogService } from './services/service-catalog.service'; 
 
 // Controllers
 import { BookingController } from './controllers/booking.controller';
 import { ClientController } from './controllers/client.controller';
 import { ReviewController } from './controllers/review.controller';
+import { ServiceCatalogController } from './controllers/service-catalog.controller'; 
 
 // 1. Strategies
 const emailStrategy = new EmailNotificationStrategy();
@@ -38,9 +40,16 @@ const reviewService = new ReviewService({
     notificationStrategies: { 'email': emailStrategy }
 });
 
+// Service Wiring
+const catalogService = new ServiceCatalogService(
+    Service as any,
+    ServiceProvider as any
+);
+
 // 3. Controllers
 const bookingController = new BookingController(bookingService);
 const clientController = new ClientController(clientService);
 const reviewController = new ReviewController(reviewService);
+const catalogController = new ServiceCatalogController(catalogService); 
 
-export { bookingController, clientController, reviewController };
+export { bookingController, clientController, reviewController, catalogController };
