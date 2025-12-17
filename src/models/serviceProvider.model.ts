@@ -1,22 +1,50 @@
-import mongoose from 'mongoose';
-import { hash } from 'bcrypt';
+import mongoose, { Document, Schema } from 'mongoose';
+import { hash } from 'bcryptjs'; // Changed to bcryptjs for consistency
 import { sign } from 'jsonwebtoken';
 import { pointSchema } from './booking.model';
-// import { pointSchema } from './booking'
-const { Schema } = mongoose;
 
-const serviceProviderSchema = new Schema({
+// 1. Define the Interface
+export interface IServiceProvider extends Document {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  address?: string;
+  ip?: string;
+  price?: number;
+  serviceCompany?: mongoose.Types.ObjectId;
+  isVerified: boolean;
+  location?: {
+    type: "Point";
+    coordinates: number[];
+  };
+  clients: mongoose.Types.ObjectId[];
+  agents: mongoose.Types.ObjectId[];
+  booking: mongoose.Types.ObjectId[];
+  service: mongoose.Types.ObjectId[];
+  serviceItems: mongoose.Types.ObjectId[];
+  services: string[];
+  refreshToken?: string;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Methods
+  signToken(): string;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+}
+
+// 2. Define the Schema
+const serviceProviderSchema = new Schema<IServiceProvider>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { type: String, required: true, select: false }, // Hide password by default
   phone: { type: String },
   address: { type: String },
   ip: { type: String },
   price: { type: Number },
   serviceCompany: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ServiceCompany',
-    // required: false,
+    ref: 'Organization', // Assuming 'ServiceCompany' is actually 'Organization' now?
   },
   isVerified: {
     type: Boolean,
@@ -36,24 +64,21 @@ const serviceProviderSchema = new Schema({
       ref: 'ServiceItem',
     },
   ],
-  // category:[{
-  //   type:String,
-  // }],
   services: [{ type: String }],
   refreshToken: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 
-// Pre-save hook to hash the password
-serviceProviderSchema.pre('save', async function () {
+// 3. Pre-save Hook (Hash Password)
+serviceProviderSchema.pre<IServiceProvider>('save', async function (next) {
   if (!this.isModified('password')) {
-    return;
+    return
   }
   this.password = await hash(this.password, 10);
 });
 
-// Method to sign JWT token
-serviceProviderSchema.method('signToken', function () {
+// 4. Instance Methods
+serviceProviderSchema.methods.signToken = function () {
   return sign(
     {
       id: this._id,
@@ -61,13 +86,17 @@ serviceProviderSchema.method('signToken', function () {
       name: this.name,
       role: 'SERVICE_PROVIDER',
     },
-    'SOME_SECRET'
+    process.env.JWT_SECRET || 'SOME_SECRET',
+    { expiresIn: '30d' }
   );
-});
+};
 
-const ServiceProvider = mongoose.model(
+serviceProviderSchema.methods.comparePassword = async function (candidatePassword: string) {
+  return await import('bcryptjs').then(bcrypt => bcrypt.compare(candidatePassword, this.password));
+};
+
+// 5. Export the Model
+export const ServiceProvider = mongoose.model<IServiceProvider>(
   'ServiceProvider',
   serviceProviderSchema
 );
-
-export { ServiceProvider };

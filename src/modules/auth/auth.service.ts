@@ -1,21 +1,26 @@
 import bcrypt from 'bcryptjs';
 import { ApiError, generateAccessAndRefreshToken, Role } from '../../utils/helpers';
 import { IAuthProvider } from './interfaces/auth.provider.interface';
+import { IAgent } from '../../models/agent.model';
+import { Model } from 'mongoose';
+import { IClient } from '../../models/client.model';
+import { IOrganization } from '../../models/organization.model';
+import { IServiceProvider } from '../../models/serviceProvider.model';
 
 // Define the shape of dependencies this service needs
 export interface IAuthDependencies {
-    AgentModel: any;
-    ClientModel: any;
-    ServiceProviderModel: any;
-    OrganizationModel: any;
+    AgentModel: Model<IAgent>;
+    ClientModel: Model<IClient>;
+    ServiceProviderModel: Model<IServiceProvider>;
+    OrganizationModel: Model<IOrganization>;
     authStrategies: Record<string, IAuthProvider>;
 }
 
 export class AuthService {
-    private agent: any;
-    private client: any;
-    private provider: any;
-    private org: any;
+    private agent: Model<IAgent>;
+    private client: Model<IClient>;
+    private provider: Model<IServiceProvider>;
+    private org: Model<IOrganization>;
 
     private strategies: Record<string, IAuthProvider>;
 
@@ -38,15 +43,15 @@ export class AuthService {
      * Universal Login (Email/Password)
      */
     async login(role: string, email: string, password: string) {
-        let user: any;
+        let user: IAgent | IClient | IServiceProvider | null;
 
         // 1. Select Model based on Role
         if (role === 'SERVICE_PROVIDER') {
-            user = await this.provider.findOne({ email });
+            user = await this.provider.findOne({ email }).select('+password');
         } else if (role === 'AGENT') {
             user = await this.agent.findOne({ email }).select('+password');
         } else if (role === 'CLIENT') {
-            user = await this.client.findOne({ email });
+            user = await this.client.findOne({ email }).select('+password');
         } else {
             throw new ApiError('Invalid Role provided', 400);
         }
@@ -125,7 +130,7 @@ export class AuthService {
         if (exists) throw new ApiError('Service Provider already exists', 400);
 
         const newUser = await this.provider.create(data);
-        return generateAccessAndRefreshToken('SERVICE_PROVIDER', newUser._id.toString());
+        return generateAccessAndRefreshToken('SERVICE_PROVIDER', newUser[0]._id.toString());
     }
 
     /**
@@ -139,7 +144,7 @@ export class AuthService {
         if (exists) throw new ApiError('Client already exists', 400);
 
         const newUser = await this.client.create(data);
-        return generateAccessAndRefreshToken('CLIENT', newUser._id.toString());
+        return generateAccessAndRefreshToken('CLIENT', newUser[0]._id.toString());
     }
 
     /**
@@ -167,7 +172,7 @@ export class AuthService {
         });
 
         // Link Agent to Organization
-        org.agents.push(newAgent._id);
+        org.agents.push(newAgent[0]._id);
         await org.save();
 
         return newAgent;

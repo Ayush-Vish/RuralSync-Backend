@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import { verifyJWT } from '../../middleware/auth.middleware';
+import { bookingController, clientController, reviewController } from './index';
+
+const router = Router();
+
+// --- Profile ---
+router.get('/profile', verifyJWT('CLIENT'), clientController.getProfile);
+router.put('/profile', verifyJWT('CLIENT'), clientController.updateProfile);
+router.patch('/password', verifyJWT('CLIENT'), clientController.changePassword);
+
+// --- Bookings ---
+router.post('/bookings', verifyJWT('CLIENT'), bookingController.create);
+router.get('/bookings', verifyJWT('CLIENT'), bookingController.getAll);
+router.delete('/bookings/:id', verifyJWT('CLIENT'), bookingController.delete);
+
+// --- Reviews ---
+router.post('/reviews', verifyJWT('CLIENT'), reviewController.create);
+router.put('/reviews/:reviewId', verifyJWT('CLIENT'), reviewController.update);
+router.delete('/reviews/:reviewId', verifyJWT('CLIENT'), reviewController.delete);
+// Public route to see reviews for a provider
+router.get('/reviews/provider/:serviceProviderId', reviewController.getByProvider);
+
+export default router;

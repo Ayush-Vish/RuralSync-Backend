@@ -1,9 +1,16 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-// Define the ServiceItem Schema
-const serviceItemSchema = new mongoose.Schema({
+export interface IServiceItem extends Document {
+  bookingId: mongoose.Types.ObjectId;
+  description: string;
+  cost: number;
+  imageUrl?: string;
+  addedBy?: mongoose.Types.ObjectId;
+}
+
+const serviceItemSchema = new Schema<IServiceItem>({
   bookingId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Booking',
     required: true,
   },
@@ -13,29 +20,17 @@ const serviceItemSchema = new mongoose.Schema({
   },
   cost: {
     type: Number,
-    // required: true,  
+    required: true, // ✅ Fixed: Must be required
+    min: 0
   },
   imageUrl: {
-    type: String, 
+    type: String,
     default: null,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  addedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'Agent' // Good to track who added the extra item
+  }
+}, { timestamps: true });
 
-// Middleware to update `updatedAt` on save
-serviceItemSchema.pre('save', function (next) {
-  this.updatedAt = new Date();
-  next();
-});
-
-// Export the ServiceItem model
-export const ServiceItem = mongoose.model('ServiceItem', serviceItemSchema);
-
-
+export const ServiceItem = mongoose.model<IServiceItem>('ServiceItem', serviceItemSchema);

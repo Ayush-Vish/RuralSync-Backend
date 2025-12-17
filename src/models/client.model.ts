@@ -1,48 +1,97 @@
-import { hash } from "bcrypt";
-import { sign } from "jsonwebtoken";
-import mongoose from "mongoose";
-import { pointSchema } from "./booking.model";
+import { hash } from 'bcryptjs'; // Using bcryptjs for consistency with your Auth module
+import { sign } from 'jsonwebtoken';
+import mongoose, { Document, Schema } from 'mongoose';
+import { pointSchema } from './booking.model';
 
-const { Schema } = mongoose;
+// 1. Define the Interface
+export interface IClient extends Document {
+  name: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+  address?: string;
+  location?: {
+    type: "Point";
+    coordinates: number[];
+  };
+  profileImage?: string;
+  bookings: mongoose.Types.ObjectId[];
+  reviews: mongoose.Types.ObjectId[]; // Reviews written by client
+  preferences?: {
+    language?: string;
+    notifications?: boolean;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  refreshToken?: string;
 
-const clientSchema = new Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  phoneNumber: { type: String },
-  password: { type: String, required: true },
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String
+  signToken(): string;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+}
+
+// 2. Define the Schema
+const clientSchema = new Schema<IClient>({
+  name: {
+    type: String,
+    required: true
   },
-  profile: {
-    bio: { type: String },
-    profilePicture: { type: String }
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  password: {
+    type: String,
+    required: true,
+    select: false // Do not return password by default
+  },
+  phoneNumber: {
+    type: String
+  },
+  address: {
+    type: String
   },
   location: {
     type: pointSchema,
     index: '2dsphere'
   },
-  bookings: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
-
-  ip: { type: String },
-  refreshToken: { type: String }, // For token refresh
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+  profileImage: {
+    type: String
+  },
+  bookings: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Booking'
+  }],
+  reviews: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Review'
+  }],
+  preferences: {
+    language: { type: String, default: 'en' },
+    notifications: { type: Boolean, default: true }
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-
-clientSchema.pre('save', async function () {
+// 3. Pre-save Hooks (Password Hashing)
+clientSchema.pre<IClient>('save', async function (next) {
+  this.updatedAt = new Date();
   if (!this.isModified('password')) {
-    return;
+    return
   }
   this.password = await hash(this.password, 10);
+
 });
 
-// Method to sign JWT token
-clientSchema.method('signToken', function () {
+// 4. Instance Methods
+clientSchema.methods.signToken = function () {
   return sign(
     {
       id: this._id,
@@ -50,8 +99,15 @@ clientSchema.method('signToken', function () {
       name: this.name,
       role: 'CLIENT',
     },
-    'SOME_SECRET'
+    process.env.JWT_SECRET || 'SOME_SECRET',
+    { expiresIn: '7d' }
   );
-});
+};
 
-export const Client = mongoose.model('Client', clientSchema);
+// Helper to check password (useful for login)
+clientSchema.methods.comparePassword = async function (candidatePassword: string) {
+  return await import('bcryptjs').then(bcrypt => bcrypt.compare(candidatePassword, this.password));
+};
+
+// 5. Export the Model
+export const Client = mongoose.model<IClient>('Client', clientSchema);

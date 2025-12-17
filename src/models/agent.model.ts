@@ -22,6 +22,7 @@ export interface IAgent extends Document {
   feedback: string[];
   currentBookings: mongoose.Types.ObjectId[];
   completedBookings: mongoose.Types.ObjectId[];
+  refreshToken?: string;
   createdAt: Date;
   updatedAt: Date;
 
@@ -122,4 +123,4 @@ agentSchema.method<IAgent>('signToken', function () {
 });
 
 // Create the Agent model using the schema
-export const Agent = mongoose.model('Agent', agentSchema);
+export const Agent = mongoose.model<IAgent>('Agent', agentSchema);

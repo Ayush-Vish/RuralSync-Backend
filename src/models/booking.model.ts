@@ -1,9 +1,7 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-// Define the schema for an extra task
-
-// Define a point schema for location data
-export const pointSchema = new mongoose.Schema({
+// Exporting reusable Point Schema
+export const pointSchema = new Schema({
   type: {
     type: String,
     enum: ['Point'],
@@ -11,31 +9,48 @@ export const pointSchema = new mongoose.Schema({
     required: true
   },
   coordinates: {
-    type: [Number],
+    type: [Number], // [Longitude, Latitude]
     required: true
   }
-});
+}, { _id: false });
 
-// Define the schema for a booking
-const bookingSchema = new mongoose.Schema({
+export interface IBooking extends Document {
+  client: mongoose.Types.ObjectId;
+  organization: mongoose.Types.ObjectId;
+  service: mongoose.Types.ObjectId;
+  agent?: mongoose.Types.ObjectId;
+  bookingDate: Date;
+  bookingTime: string;
+  status: 'PENDING' | 'CONFIRMED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  totalPrice: number;
+  paymentStatus: 'PAID' | 'UNPAID';
+  extraTasks: { description: string; price: number }[];
+  location: { type: string; coordinates: number[] };
+  address: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const bookingSchema = new Schema<IBooking>({
   client: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Client',
+    type: Schema.Types.ObjectId,
+    ref: 'Client', // Matches your Client model name
     required: true,
   },
-  customer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Customer',
-    required: true,
-  },
-  serviceProvider: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ServiceProvider',
+  organization: {
+    type: Schema.Types.ObjectId,
+    ref: 'Organization', // Matches your Organization model name
+    required: true
   },
   service: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Service',
     required: true,
+  },
+  agent: {
+    type: Schema.Types.ObjectId,
+    ref: 'Agent',
   },
   bookingDate: {
     type: Date,
@@ -47,39 +62,29 @@ const bookingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'In Progress', 'Completed', "Not Assigned"],
-    default: 'Not Assigned',
+    enum: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+    default: 'PENDING',
   },
   totalPrice: {
     type: Number,
     min: 0,
+    required: true
   },
   paymentStatus: {
     type: String,
-    enum: ['Paid', 'Unpaid'],
-    default: 'Unpaid',
-  },
-  agent: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Agent',
-    required: false,
+    enum: ['PAID', 'UNPAID'],
+    default: 'UNPAID',
   },
   extraTasks: [{
-    description:{
-      type:String
-    }, 
-    extraPrice:{
-      type:String
-    } 
-  }], // Include extra tasks in the booking
-  location: { // Include location of the service (if applicable)
+    description: { type: String, required: true },
+    price: { type: Number, required: true } // ✅ Fixed: Price must be Number
+  }],
+  location: {
     type: pointSchema,
     index: '2dsphere',
   },
-  address:{
-    type:String
-  }
+  address: { type: String, required: true },
+  notes: { type: String }
 }, { timestamps: true });
 
-// Export the Booking model
-export const Booking = mongoose.model('Booking', bookingSchema);
+export const Booking = mongoose.model<IBooking>('Booking', bookingSchema);

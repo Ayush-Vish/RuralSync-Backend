@@ -1,20 +1,57 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const reviewSchema = new Schema({
-  serviceProvider: { type: Schema.Types.ObjectId, ref: 'ServiceProvider', required: true },
-  customer: { type: Schema.Types.ObjectId, ref: 'Customer', required: true },
-  service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
-  rating: { type: Number, required: true, min: 1, max: 5 }, // Rating between 1 to 5
-  comment: { type: String, required: false }, // Optional comment
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date },
+// 1. Define the Interface
+export interface IReview extends Document {
+  serviceProvider: mongoose.Types.ObjectId;
+  client: mongoose.Types.ObjectId; // Standardized to 'client' (not customer)
+  service: mongoose.Types.ObjectId;
+  rating: number;
+  comment?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 2. Define the Schema
+const reviewSchema = new Schema<IReview>({
+  serviceProvider: {
+    type: Schema.Types.ObjectId,
+    ref: 'ServiceProvider',
+    required: true
+  },
+  client: {
+    type: Schema.Types.ObjectId,
+    ref: 'Client',
+    required: true
+  },
+  service: {
+    type: Schema.Types.ObjectId,
+    ref: 'Service',
+    required: true
+  },
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5
+  },
+  comment: {
+    type: String,
+    required: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  },
 });
 
-reviewSchema.pre('save', function (next) {
+// 3. Pre-save Hook (Update timestamp)
+reviewSchema.pre<IReview>('save', function (next) {
   this.updatedAt = new Date();
-  next();
 });
 
-const Review = mongoose.model('Review', reviewSchema);
-
-export { Review };
+// 4. Export the Model
+export const Review = mongoose.model<IReview>('Review', reviewSchema);
