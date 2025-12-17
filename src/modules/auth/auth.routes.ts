@@ -1,51 +1,84 @@
 import { Router } from 'express';
-import {
-  
-  agentRegister,
-  getUserDetails,
-  login,
-  logout,
-  register,
-} from './auth.controllers.ts';
-// import { googleAuth, googleAuthCallback, googleLogout } from '../controllers/google-auth.controller';
-import { isAuthorized, loactionMiddleware,  upload, uploadFileToS3, verifyJWT } from '@org/utils';
+// ✅ Import the 'wired' controller from index.ts
+import { authController } from '.';
+import { verifyJWT, isAuthorized } from '../../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  res.status(200).json({
-    message: 'Welcome to Auth API',
-  });
-});
+// Public Routes
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ */
 
-router.post('/register', register);
-router.post('/login', loactionMiddleware,   login);
+router.post('/login', authController.login);
+/**
+ * @openapi
+ * /auth/register:
+ *   post:
+ *     summary: Register user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Register successful
+ */
+router.post('/register', authController.register);
+
+// Protected Routes
 router.post(
   '/agent-register',
   verifyJWT("SERVICE_PROVIDER"),
   isAuthorized(['SERVICE_PROVIDER']),
-  agentRegister
+  authController.agentRegister
 );
-router.get('/logout', logout);
-router.get('/user-detail/agent', verifyJWT("AGENT"), getUserDetails);
-router.get('/user-detail/service-provider', verifyJWT("SERVICE_PROVIDER"), getUserDetails);
-router.get('/user-detail/client', verifyJWT("CLIENT"), getUserDetails);
 
-// Google OAuth routes
-// router.get('/google', googleAuth);
-// router.get('/google/callback', googleAuthCallback);
-// router.post('/google/logout', googleLogout);
-// router.post('/upload', upload.single('file'),async (req, res) => {
-//   // Check if the file was uploaded successfully
-//   if (!req.file) {
-//     return res.status(400).json({ message: 'No file uploaded' });
-//   }
-//   const {url}  = await uploadFileToS3(req.file);
-//   return res.status(200).json({ 
-//     url,
-//     message: 'File uploaded successfully',
-//   });
+router.get('/logout', verifyJWT("ANY"), authController.logout);
 
+// Detail Routes
+router.get('/user-detail/agent', verifyJWT("AGENT"), authController.getUserDetails);
+router.get('/user-detail/service-provider', verifyJWT("SERVICE_PROVIDER"), authController.getUserDetails);
+router.get('/user-detail/client', verifyJWT("CLIENT"), authController.getUserDetails);
 
-// });
 export default router;

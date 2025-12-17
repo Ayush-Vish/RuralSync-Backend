@@ -1,7 +1,33 @@
 import { hash } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
-import mongoose from 'mongoose'
+import mongoose, { Document } from 'mongoose'
 import { pointSchema } from './booking.model';
+export interface IAgent extends Document {
+  name: string;
+  email: string;
+  status: "BUSY" | "FREE" | "OFFLINE";
+  password: string;
+  phoneNumber?: string;
+  serviceCompany: string[];
+  address?: string;
+  location?: {
+    type: "Point";
+    coordinates: number[];
+  };
+  services: string[];
+  serviceArea?: string;
+  availability?: string;
+  serviceProviderId?: mongoose.Types.ObjectId;
+  rating: number;
+  feedback: string[];
+  currentBookings: mongoose.Types.ObjectId[];
+  completedBookings: mongoose.Types.ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
+
+  signToken(): string;
+}
+
 // Define the schema for the Agent
 const agentSchema = new mongoose.Schema({
 
@@ -14,17 +40,17 @@ const agentSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  status:{
+  status: {
     type: String,
-    default: "FREE", 
-    enum: ["BUSY", "FREE" , "OFFLINE"]
+    default: "FREE",
+    enum: ["BUSY", "FREE", "OFFLINE"]
   },
   password: { type: String, required: true },
   phoneNumber: {
     type: String,
   },
-  serviceCompany:[{
-    type :String
+  serviceCompany: [{
+    type: String
   }],
   address: {
     type: String,
@@ -73,21 +99,17 @@ const agentSchema = new mongoose.Schema({
   }
 });
 
-// Create a pre-save middleware to update the updatedAt field
-agentSchema.pre('save', function(next) {
-    this.updatedAt = new Date();
-    next();
-  });
-  // Method to sign JWT token
-  agentSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-      return next();
-    }
-    this.password = await hash(this.password, 10);
-    return next();
-  });
-  
-agentSchema.method('signToken', function () {
+agentSchema.pre<IAgent>('save', async function () {
+  this.updatedAt = new Date();
+});
+agentSchema.pre<IAgent>('save', async function () {
+  if (!this.isModified('password')) {
+    return;
+  }
+  this.password = await hash(this.password, 10);
+});
+
+agentSchema.method<IAgent>('signToken', function () {
   return sign(
     {
       id: this._id,
@@ -100,4 +122,4 @@ agentSchema.method('signToken', function () {
 });
 
 // Create the Agent model using the schema
- export const Agent = mongoose.model('Agent', agentSchema);
+export const Agent = mongoose.model('Agent', agentSchema);

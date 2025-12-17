@@ -12,9 +12,9 @@ const serviceProviderSchema = new Schema({
   phone: { type: String },
   address: { type: String },
   ip: { type: String },
-  price:{type: Number},
+  price: { type: Number },
   serviceCompany: {
-    type:mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'ServiceCompany',
     // required: false,
   },
@@ -29,7 +29,7 @@ const serviceProviderSchema = new Schema({
   clients: [{ type: Schema.Types.ObjectId, ref: 'Client' }],
   agents: [{ type: Schema.Types.ObjectId, ref: 'Agent' }],
   booking: [{ type: Schema.Types.ObjectId, ref: 'Booking' }],
-  service:[{type:Schema.Types.ObjectId,ref :'Service'}],
+  service: [{ type: Schema.Types.ObjectId, ref: 'Service' }],
   serviceItems: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -45,12 +45,11 @@ const serviceProviderSchema = new Schema({
 });
 
 // Pre-save hook to hash the password
-serviceProviderSchema.pre('save', async function (next) {
+serviceProviderSchema.pre('save', async function () {
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
   this.password = await hash(this.password, 10);
-  return next();
 });
 
 // Method to sign JWT token

@@ -25,7 +25,7 @@ const clientSchema = new Schema({
     type: pointSchema,
     index: '2dsphere'
   },
-  bookings: {  type: mongoose.Schema.Types.ObjectId,  ref: 'Booking' },
+  bookings: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
 
   ip: { type: String },
   refreshToken: { type: String }, // For token refresh
@@ -34,12 +34,11 @@ const clientSchema = new Schema({
 });
 
 
-clientSchema.pre('save', async function (next) {
+clientSchema.pre('save', async function () {
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
   this.password = await hash(this.password, 10);
-  return next();
 });
 
 // Method to sign JWT token
