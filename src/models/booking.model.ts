@@ -21,7 +21,7 @@ export interface IBooking extends Document {
   agent?: mongoose.Types.ObjectId;
   bookingDate: Date;
   bookingTime: string;
-  status: 'PENDING' | 'CONFIRMED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: "PENDING" | "CONFIRMED" | "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   totalPrice: number;
   paymentStatus: 'PAID' | 'UNPAID';
   extraTasks: { description: string; price: number }[];

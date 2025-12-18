@@ -45,7 +45,10 @@ export class BookingService {
             // 2. Fetch Service Details
             const service = await this.service.findById(item.serviceId);
             if (!service) throw new ApiError(`Service not found: ${item.serviceId}`, 404);
-
+            const orgId = service.organization || (service as any).serviceCompany;
+            if (!orgId) {
+                throw new ApiError(`Service "${service.name}" is not properly linked to an organization.`, 400);
+            }
             // 3. Date Parsing
             const date = moment(item.bookingDate, 'YYYY-MM-DD');
             if (!date.isValid()) throw new ApiError(`Invalid Date: ${item.bookingDate}`, 400);
@@ -68,8 +71,9 @@ export class BookingService {
             const newBooking = await this.booking.create({
                 client: clientId,
                 service: service._id,
-                organization: service.organization, // Link to the company
+                // organization: service.organization, // Link to the company
                 bookingDate: date.toDate(),
+                organization: orgId,
                 bookingTime: item.bookingTime,
                 status: 'PENDING',
                 totalPrice: finalPrice,
@@ -91,7 +95,7 @@ export class BookingService {
     async getClientBookings(clientId: string) {
         return await this.booking.find({ client: clientId })
             .populate('service', 'name description')
-            .populate('organization', 'name')
+            .populate('organization', 'name phone')
             .populate('agent', 'name')
             .sort({ bookingDate: -1 });
     }

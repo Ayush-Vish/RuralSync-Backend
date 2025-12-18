@@ -12,6 +12,7 @@ export interface IService extends Document {
   location?: { type: string; coordinates: number[] };
   images: string[];
   reviews: mongoose.Types.ObjectId[];
+  assignedAgents: mongoose.Types.ObjectId[];
   rating: number;
   tags: string[];
   isActive: boolean;
@@ -37,7 +38,7 @@ const serviceSchema = new Schema<IService>({
 
   images: [{ type: String }],
   reviews: [{ type: Schema.Types.ObjectId, ref: 'Review' }],
-
+  assignedAgents: [{ type: Schema.Types.ObjectId, ref: 'Agent' }],
   location: {
     type: pointSchema,
     index: '2dsphere'

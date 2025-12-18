@@ -123,28 +123,38 @@ export class AuthService {
      * Register a new Service Provider
      */
     async registerServiceProvider(data: any) {
-        const { email, password } = data;
-        if (!email || !password) throw new ApiError('Email and password required', 400);
+        const { email, password , name} = data;
+        if (!email || !password || !name) throw new ApiError('Email and password required', 400);
 
         const exists = await this.provider.findOne({ email });
         if (exists) throw new ApiError('Service Provider already exists', 400);
 
-        const newUser = await this.provider.create(data);
-        return generateAccessAndRefreshToken('SERVICE_PROVIDER', newUser[0]._id.toString());
+        const newUser = await new this.provider({
+            email,
+            password,
+            name
+        });
+        await newUser.save();
+        return generateAccessAndRefreshToken('SERVICE_PROVIDER', newUser._id.toString());
     }
 
     /**
      * Register a new Client
      */
     async registerClient(data: any) {
-        const { email, password } = data;
-        if (!email || !password) throw new ApiError('Email and password required', 400);
+        const { email, password, name } = data;
+        if (!email || !password || !name) throw new ApiError('Email and password required', 400);
 
         const exists = await this.client.findOne({ email });
         if (exists) throw new ApiError('Client already exists', 400);
 
-        const newUser = await this.client.create(data);
-        return generateAccessAndRefreshToken('CLIENT', newUser[0]._id.toString());
+        const newUser = await new this.client({
+            email,
+            password,
+            name
+        });
+        await newUser.save();
+        return generateAccessAndRefreshToken('CLIENT', newUser._id.toString());
     }
 
     /**
@@ -162,7 +172,7 @@ export class AuthService {
         if (!org) throw new ApiError('Organization not found for this provider', 404);
 
         // Create Agent
-        const newAgent = await this.agent.create({
+        const newAgent = await new this.agent({
             ...data,
             serviceProviderId: providerId,
             location: {
@@ -170,9 +180,9 @@ export class AuthService {
                 coordinates: [data.location?.longitude || 0, data.location?.latitude || 0]
             }
         });
-
+        await newAgent.save();
         // Link Agent to Organization
-        org.agents.push(newAgent[0]._id);
+        org.agents.push(newAgent._id);
         await org.save();
 
         return newAgent;

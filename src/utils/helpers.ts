@@ -1,3 +1,4 @@
+import multer from 'multer';
 import { Response, Request, NextFunction } from 'express';
 import { sign, verify } from 'jsonwebtoken';
 // import useragent from 'useragent';
@@ -141,7 +142,7 @@ export const generateAccessAndRefreshToken = async (role: Role, id: string) => {
       role,
     };
 
-    const accessToken = sign(payload, secret, { expiresIn: "15m" }); // 15 mins
+    const accessToken = sign(payload, secret, { expiresIn: "59m" }); // 15 mins
     const refreshToken = sign(payload, secret, { expiresIn: "7d" }); // 7 days
 
     return { accessToken, refreshToken };
@@ -150,3 +151,26 @@ export const generateAccessAndRefreshToken = async (role: Role, id: string) => {
     throw new ApiError("Error generating token: " + error.message, 500);
   }
 };
+
+// 1. Configure Storage (Use Memory for Vercel/Serverless)
+const storage = multer.memoryStorage();
+
+// 2. Define Filters (Optional but recommended)
+const fileFilter = (req: any, file: any, cb: any) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new ApiError('Invalid file type. Only JPEG, PNG, WEBP, and PDF are allowed.', 400), false);
+  }
+};
+
+// 3. Create Upload Instance
+export const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 4 * 1024 * 1024, // 4MB Limit (Vercel Serverless limit is ~4.5MB)
+  },
+});
