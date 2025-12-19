@@ -19,6 +19,8 @@ import { BookingController } from './controllers/booking.controller';
 import { ClientController } from './controllers/client.controller';
 import { ReviewController } from './controllers/review.controller';
 import { ServiceCatalogController } from './controllers/service-catalog.controller'; 
+import { SearchService } from './services/search.service';
+import { SearchController } from './controllers/search.controller';
 
 // 1. Strategies
 const emailStrategy = new EmailNotificationStrategy();
@@ -45,11 +47,12 @@ const catalogService = new ServiceCatalogService(
     Service as any,
     ServiceProvider as any
 );
+const searchService = new SearchService(Service as any);
 
 // 3. Controllers
 const bookingController = new BookingController(bookingService);
 const clientController = new ClientController(clientService);
 const reviewController = new ReviewController(reviewService);
 const catalogController = new ServiceCatalogController(catalogService); 
-
-export { bookingController, clientController, reviewController, catalogController };
+const searchController = new SearchController(searchService);
+export { bookingController, clientController, reviewController, catalogController, searchController };

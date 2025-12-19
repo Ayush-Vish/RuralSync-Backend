@@ -14,7 +14,7 @@ router.get('/get/:bookingId', agentController.getBooking);
 
 // Status and Payment
 router.patch('/bookings/:bookingId/status', agentController.updateStatus);
-router.post('/booking/:bookingId/pay', agentController.payBooking);
+router.post('/booking/:bookingId/pay', agentController.markAsPaid);
 
 // Extra Tasks
 router.post('/bookings/:bookingId/extra-tasks', agentController.handleExtraTask); // Add

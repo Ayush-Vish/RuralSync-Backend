@@ -46,4 +46,15 @@ export class ServiceCatalogController {
             next(error);
         }
     };
+    public searchNearest = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await this.searchNearest(req, res, next);
+            res.status(200).json({
+                success: true,
+                data: result,
+            })
+        } catch (error) {
+            next(error);
+        }
+    }
 }

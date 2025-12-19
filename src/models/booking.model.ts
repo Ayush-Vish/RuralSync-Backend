@@ -28,6 +28,7 @@ export interface IBooking extends Document {
   location: { type: string; coordinates: number[] };
   address: string;
   notes?: string;
+  paymentMethod: "CASH" | "ONLINE" | "NONE"
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +49,7 @@ const bookingSchema = new Schema<IBooking>({
     ref: 'Service',
     required: true,
   },
+  paymentMethod: { type: String, enum: ['CASH', 'ONLINE', 'NONE'], default: 'NONE' },
   agent: {
     type: Schema.Types.ObjectId,
     ref: 'Agent',
@@ -65,11 +67,6 @@ const bookingSchema = new Schema<IBooking>({
     enum: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
     default: 'PENDING',
   },
-  totalPrice: {
-    type: Number,
-    min: 0,
-    required: true
-  },
   paymentStatus: {
     type: String,
     enum: ['PAID', 'UNPAID'],
@@ -79,6 +76,7 @@ const bookingSchema = new Schema<IBooking>({
     description: { type: String, required: true },
     price: { type: Number, required: true } // ✅ Fixed: Price must be Number
   }],
+  totalPrice: { type: Number, required: true },
   location: {
     type: pointSchema,
     index: '2dsphere',

@@ -46,7 +46,6 @@ const serviceSchema = new Schema<IService>({
   tags: [String],
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
-
 serviceSchema.index({ name: 'text', description: 'text', tags: 'text' });
 
 export const Service = mongoose.model<IService>('Service', serviceSchema);

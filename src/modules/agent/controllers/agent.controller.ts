@@ -49,11 +49,19 @@ export class AgentController {
         } catch (error) { next(error); }
     };
 
-    public payBooking = async (req: RequestWithUser, res: Response, next: NextFunction) => {
+    // public payBooking = async (req: RequestWithUser, res: Response, next: NextFunction) => {
+    //     try {
+    //         const { bookingId } = req.params;
+    //         const booking = await this.agentService.processPayment(req.user!.id, bookingId, req.user!.name);
+    //         res.status(200).json({ success: true, message: 'Payment confirmed', booking });
+    //     } catch (error) { next(error); }
+    // };
+    public markAsPaid = async (req: RequestWithUser, res: Response, next: NextFunction) => {
         try {
             const { bookingId } = req.params;
-            const booking = await this.agentService.processPayment(req.user!.id, bookingId, req.user!.name);
-            res.status(200).json({ success: true, message: 'Payment confirmed', booking });
+            const { method } = req.body; // e.g., "CASH"
+            const result = await this.agentService.processPayment(req.user!.id, bookingId, method);
+            res.status(200).json({ success: true, booking: result });
         } catch (error) { next(error); }
     };
 }

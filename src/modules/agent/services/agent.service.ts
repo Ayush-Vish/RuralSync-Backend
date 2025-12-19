@@ -151,34 +151,21 @@ export class AgentService {
     /**
      * Mark as Paid and Complete Job
      */
-    async processPayment(agentId: string, bookingId: string, agentName: string) {
+
+    async processPayment(agentId: string, bookingId: string, method: "CASH" | "ONLINE" | "NONE") {
         const booking = await this.bookingModel.findOne({ _id: bookingId, agent: agentId });
         if (!booking) throw new ApiError('Booking not found', 404);
 
-        // 1. Final Price Verification
-        const service = await this.serviceModel.findById(booking.service);
-        const expectedBase = service?.basePrice || 0;
-        const extraTotal = booking.extraTasks.reduce((sum, t) => sum + t.price, 0);
-
-        // Ensure the total price matches our internal calculation before marking paid
-        booking.totalPrice = expectedBase + extraTotal;
+        // 1. In a real app, you'd pick a strategy from a map based on 'method'
+        // For now, we assume Cash:
         booking.paymentStatus = 'PAID';
         booking.status = 'COMPLETED';
+        booking.paymentMethod = method; // Added field to model
 
         await booking.save();
 
-        // 2. Set Agent to Free
+        // Free the agent
         await this.agentModel.findByIdAndUpdate(agentId, { status: 'FREE' });
-
-        // 3. Audit Log
-        // await addAuditLogJob({
-        //   action: 'MARK_BOOKING_PAID',
-        //   userId: agentId,
-        //   role: 'AGENT',
-        //   targetId: bookingId,
-        //   metadata: { finalPrice: booking.totalPrice },
-        //   username: agentName
-        // });
 
         return booking;
     }

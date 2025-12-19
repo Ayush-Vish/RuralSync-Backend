@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { verifyJWT } from '../../middleware/auth.middleware';
-import { bookingController, clientController, reviewController, catalogController } from './index';
+import { bookingController, clientController, reviewController, catalogController, searchController } from './index';
 
 const router = Router();
+router.get('/search', searchController.searchNearest);
 
 // --- Profile ---
 router.get('/profile', verifyJWT('CLIENT'), clientController.getProfile);
@@ -23,4 +24,5 @@ router.get('/reviews/provider/:serviceProviderId', reviewController.getByProvide
 router.get('/services', catalogController.getAllServices);
 router.get('/services/providers', catalogController.getAllServiceProviders); // Specific path before :id
 router.get('/services/:id', catalogController.getServiceById);
+
 export default router;
