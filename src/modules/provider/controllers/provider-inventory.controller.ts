@@ -56,4 +56,17 @@ export class ProviderInventoryController {
             next(error);
         }
     };
+
+    /**
+     * Fix all services with [0,0] coordinates by updating them to use organization's location
+     */
+    public fixLocations = async (req: RequestWithUser, res: Response, next: NextFunction) => {
+        try {
+            if (!req.user) throw new ApiError('Unauthorized', 401);
+            const result = await this.service.fixServiceLocations(req.user.id);
+            res.status(200).json({ success: true, ...result });
+        } catch (error) {
+            next(error);
+        }
+    };
 }

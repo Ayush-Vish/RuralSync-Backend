@@ -31,6 +31,7 @@ router.post('/add-service',
     inventoryController.create
 );
 router.delete('/delete-service/:id', inventoryController.delete);
+router.patch('/services/fix-locations', inventoryController.fixLocations); // Fix services with [0,0] coordinates
 
 // --- Agent Routes ---
 router.get('/agents', agentController.getAll); // All agents

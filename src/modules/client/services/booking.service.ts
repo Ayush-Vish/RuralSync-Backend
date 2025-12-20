@@ -53,6 +53,21 @@ export class BookingService {
             const date = moment(item.bookingDate, 'YYYY-MM-DD');
             if (!date.isValid()) throw new ApiError(`Invalid Date: ${item.bookingDate}`, 400);
 
+            // 3.5 Check Availability
+            const existingBooking = await this.booking.findOne({
+                service: item.serviceId,
+                bookingDate: {
+                    $gte: date.startOf('day').toDate(),
+                    $lte: date.endOf('day').toDate()
+                },
+                bookingTime: item.bookingTime,
+                status: { $in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] }
+            });
+
+            if (existingBooking) {
+                throw new ApiError(`Slot ${item.bookingTime} on ${item.bookingDate} is already booked`, 409);
+            }
+
             // 4. Calculate Price (Base + Extra Tasks)
             let finalPrice = service.basePrice;
             const formattedTasks = [];
@@ -87,6 +102,25 @@ export class BookingService {
         }
 
         return createdBookings;
+    }
+
+    /**
+     * Get Service Availability
+     */
+    async getAvailability(serviceId: string, dateStr: string) {
+        const date = moment(dateStr, 'YYYY-MM-DD');
+        if (!date.isValid()) throw new ApiError('Invalid Date', 400);
+
+        const bookings = await this.booking.find({
+            service: serviceId,
+            bookingDate: {
+                $gte: date.startOf('day').toDate(),
+                $lte: date.endOf('day').toDate()
+            },
+            status: { $in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] }
+        }).select('bookingTime');
+
+        return bookings.map(b => b.bookingTime);
     }
 
     /**

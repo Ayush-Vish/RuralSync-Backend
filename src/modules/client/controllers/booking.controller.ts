@@ -54,4 +54,23 @@ export class BookingController {
             next(error);
         }
     };
+
+    public checkAvailability = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { serviceId, date } = req.query;
+
+            if (!serviceId || !date) {
+                throw new ApiError('Service ID and Date are required', 400);
+            }
+
+            const bookedSlots = await this.bookingService.getAvailability(serviceId as string, date as string);
+
+            res.status(200).json({
+                success: true,
+                data: bookedSlots
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
 }
