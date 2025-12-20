@@ -22,6 +22,7 @@ router.get('/bookings', verifyJWT('CLIENT'), bookingController.getAll);
 router.delete('/bookings/:id', verifyJWT('CLIENT'), bookingController.delete);
 
 // --- Reviews ---
+router.get('/reviews/my', verifyJWT('CLIENT'), reviewController.getMyReviews);
 router.post('/reviews', verifyJWT('CLIENT'), reviewController.create);
 router.put('/reviews/:reviewId', verifyJWT('CLIENT'), reviewController.update);
 router.delete('/reviews/:reviewId', verifyJWT('CLIENT'), reviewController.delete);

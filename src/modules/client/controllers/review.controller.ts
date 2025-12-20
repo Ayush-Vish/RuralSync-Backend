@@ -53,4 +53,17 @@ export class ReviewController {
       next(error);
     }
   };
+
+  public getMyReviews = async (req: RequestWithUser, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) throw new ApiError('Unauthorized', 401);
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      
+      const result = await this.reviewService.getClientReviews(req.user.id, page, limit);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

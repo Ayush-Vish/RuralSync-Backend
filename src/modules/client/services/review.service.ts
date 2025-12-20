@@ -188,4 +188,27 @@ export class ReviewService {
             totalReviews: total
         };
     }
+
+    /**
+     * Get Reviews by Client (Client's own reviews)
+     */
+    async getClientReviews(clientId: string, page = 1, limit = 10) {
+        const skip = (page - 1) * limit;
+
+        const reviews = await this.review.find({ client: clientId })
+            .populate('serviceProvider', 'companyName email phone')
+            .populate('service', 'name category basePrice')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await this.review.countDocuments({ client: clientId });
+
+        return {
+            reviews,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            totalReviews: total
+        };
+    }
 }
