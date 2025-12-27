@@ -36,10 +36,10 @@ app.use(cors({
 app.use(express.json());
 
 // Mount Modules
-app.use('/auth', authRoutes);
-app.use('/client', clientRoutes);
-app.use('/provider', providerRoutes);
-app.use('/agent', agentRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/client', clientRoutes);
+app.use('/api/provider', providerRoutes);
+app.use('/api/agent', agentRoutes);
 app.use((err: any, req: any, res: any, next: any) => {
     err.status = err.status || 500
     console.log(err.message)
