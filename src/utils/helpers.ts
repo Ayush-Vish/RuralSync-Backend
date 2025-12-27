@@ -100,12 +100,24 @@ type CookieOptions = {
   path: string;
 };
 
+
 export const createCookieOptions = (): CookieOptions => {
+  if (process.env.NODE_ENV === "production") {
+    // Production (Vercel + rewrites)
+    return {
+      maxAge: 5 * 24 * 60 * 60 * 1000, // 5 days
+      httpOnly: true,
+      secure: true,        // HTTPS only
+      sameSite: "lax",     // FIRST-PARTY COOKIE
+      path: "/",
+    };
+  }
+
   return {
-    maxAge: 5 * 24 * 60 * 60 * 1000, // 5 days
-    httpOnly: true, // Recommended: true prevents JS access (XSS protection)
-    secure: process.env.NODE_ENV === 'production', // True in production
-    sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
+    maxAge: 5 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: false,       // localhost = no HTTPS
+    sameSite: "lax",
     path: "/",
   };
 };
