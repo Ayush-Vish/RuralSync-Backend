@@ -169,4 +169,18 @@ export class AgentService {
 
         return booking;
     }
+
+    /**
+     * Update Agent Profile
+     */
+    async updateProfile(agentId: string, data: Partial<IAgent>) {
+        const agent = await this.agentModel.findByIdAndUpdate(
+            agentId,
+            { ...data, updatedAt: new Date() },
+            { new: true }
+        ).select('-password -refreshToken');
+
+        if (!agent) throw new ApiError('Agent not found', 404);
+        return agent;
+    }
 }

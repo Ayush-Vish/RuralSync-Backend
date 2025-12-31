@@ -37,10 +37,31 @@ export class ServiceCatalogService {
      * Get All Service Providers
      */
     async getAllProviders() {
-        // We query the DB directly instead of calling an external API
-        const providers = await this.providerModel.find({ isVerified: true })
-            .select('name email phone rating reviewCount location');
-
+        const providers = await this.providerModel.find({ isVerified: false })
+            .select('name email phone rating reviewCount location')
+            .populate({
+                path: 'serviceCompany',
+                select: 'name description logo images categories rating reviewCount location address phone website businessHours'
+            });
         return providers;
+    }
+
+    /**
+     * Get Single Service Provider by ID with full details
+     */
+    async getProviderById(id: string) {
+        const provider = await this.providerModel.findById(id)
+            .select('name email phone address rating reviewCount location serviceCompany services')
+            .populate({
+                path: 'serviceCompany',
+                select: 'name description logo images categories rating reviewCount location address phone website businessHours socialMedia'
+            })
+            .populate({
+                path: 'service',
+                select: 'name description price duration images category rating reviewCount'
+            });
+
+        if (!provider) throw new ApiError(`Service Provider with ID ${id} not found`, 404);
+        return provider;
     }
 }

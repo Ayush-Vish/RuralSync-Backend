@@ -23,6 +23,7 @@ router.post('/register-org',
     isAuthorized(['SERVICE_PROVIDER']),
     profileController.register
 );
+router.put('/org-update', profileController.updateOrg);
 
 // --- Inventory (Services) Routes ---
 router.get('/services', inventoryController.getAll);

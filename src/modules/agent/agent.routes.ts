@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { verifyJWT } from '../../middleware/auth.middleware';
+import { upload } from '../../utils/helpers';
 import { agentController } from './index';
 
 const router = Router();
@@ -8,6 +9,7 @@ const router = Router();
 router.use(verifyJWT('AGENT'));
 
 router.get('/dashboard', agentController.getDashboard);
+router.post('/profile/image', upload.single('image'), agentController.uploadProfileImage);
 router.patch('/bookings/:bookingId/status', agentController.updateStatus);
 
 router.get('/get/:bookingId', agentController.getBooking);

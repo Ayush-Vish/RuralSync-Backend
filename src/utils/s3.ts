@@ -1,81 +1,250 @@
-// import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-// import dotenv from 'dotenv';
-// dotenv.config();
-// import sharp from 'sharp';
-// const s3 = new S3Client({
-//   region: process.env.AWS_REGION || 'ap-south-1',
-//   credentials: {
-//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//   },
-// });
-// /**
-//  * Utility function to upload a file to S3
-//  * @param {Object} file - The file object (usually req.file from multer)
-//  * @param {string} bucketName - The S3 bucket name
-//  * @returns {Promise<string>} - Returns the URL of the uploaded file
-//  */
-// export const uploadFileToS3 = async (
-//   file,
-//   bucketName = process.env.AWS_BUCKET_NAME
-// ) => {
-//   if (!file || !file.buffer) {
-//     throw new Error('Invalid file data');
-//   }
-//   console.time("upload" );
-//   // const buffer = await sharp(file.buffer)
-//   //   .resize({})
-//   //   .toBuffer();
-//   console.timeEnd("upload");
+import {
+    S3Client,
+    PutObjectCommand,
+    DeleteObjectCommand,
+    GetObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import crypto from 'crypto';
+import path from 'path';
 
-//   const params = {
-//     Bucket: bucketName,
-//     Key: Date.now() + file.originalname,
-//     Body:file.buffer,
-//     ContentType: file.mimetype,
-//   };
+// S3 Configuration
+const s3Config = {
+    region: process.env.AWS_REGION || 'ap-south-1',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+};
 
-//   try {
-//     console.time("S3")
-//     const command = new PutObjectCommand(params);
-//     await s3.send(command);
-//     console.timeEnd("S3")
-//     return {
-//       url: `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`,
-//     };
-//   } catch (error) {
-//     console.error('Error uploading file to S3:', error);
-//     throw new Error('File upload failed');
-//   }
-// };
-// import multer from 'multer';
-// import path from 'path';
+const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'shellsync';
+const CDN_URL = process.env.AWS_CLOUDFRONT_URL || ''; // Optional: CloudFront CDN URL
 
-// // Define the storage configuration
-// const storage = multer.memoryStorage(); // Use memory storage to get the file buffer
+// Create S3 Client
+const s3Client = new S3Client(s3Config);
 
-// // Define the file filter function
-// function sanitizeFile(file, cb) {
-//   const fileExts = ['.png', '.jpg', '.jpeg', '.gif'];
-//   const isAllowedExt = fileExts.includes(path.extname(file.originalname.toLowerCase()));
-//   const isAllowedMimeType = file.mimetype.startsWith('image/');
+// Folder structure for different upload types
+export enum UploadFolder {
+    SERVICES = 'services',
+    ORGANIZATIONS = 'organizations',
+    PROFILES = 'profiles',
+    BOOKINGS = 'bookings',
+    REVIEWS = 'reviews',
+    MISC = 'misc',
+}
 
-//   if (isAllowedExt && isAllowedMimeType) {
-//     return cb(null, true);
-//   } else {
-//     cb('Error: File type not allowed!');
-//   }
-// }
+// Allowed MIME types
+const ALLOWED_MIME_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+];
 
-// // Configure multer
-// const upload = multer({
-//   storage: storage,
-//   fileFilter: (req, file, callback) => {
-//     sanitizeFile(file, callback);
-//   },
-//   limits: {
-//     fileSize: 1024 * 1024 * 10, // 2MB file size
-//   },
-// });
+/**
+ * Generate a unique filename
+ */
+const generateUniqueFilename = (originalName: string): string => {
+    const ext = path.extname(originalName);
+    const timestamp = Date.now();
+    const randomString = crypto.randomBytes(8).toString('hex');
+    return `${timestamp}-${randomString}${ext}`;
+};
 
-// export { upload};
+/**
+ * Get content type from file extension
+ */
+const getContentType = (filename: string): string => {
+    const ext = path.extname(filename).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+        '.pdf': 'application/pdf',
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
+};
+
+/**
+ * Check if S3 is configured
+ */
+export const isS3Configured = (): boolean => {
+    return !!(
+        process.env.AWS_ACCESS_KEY_ID &&
+        process.env.AWS_SECRET_ACCESS_KEY 
+    );
+};
+
+/**
+ * Upload a single file to S3
+ */
+export const uploadToS3 = async (
+    file: Express.Multer.File,
+    folder: UploadFolder = UploadFolder.MISC
+): Promise<string> => {
+    // Check if S3 is configured
+    if (!isS3Configured()) {
+        console.warn('S3 not configured, returning placeholder URL');
+        return `https://placeholder.com/${folder}/${file.originalname}`;
+    }
+
+    // Validate MIME type
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+        throw new Error(`Invalid file type: ${file.mimetype}. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`);
+    }
+
+    const uniqueFilename = generateUniqueFilename(file.originalname);
+    const key = `${folder}/${uniqueFilename}`;
+
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+    };
+
+    try {
+        await s3Client.send(new PutObjectCommand(params));
+
+        // Return CloudFront URL if available, otherwise S3 URL
+        if (CDN_URL) {
+            return `${CDN_URL}/${key}`;
+        }
+        return `https://${BUCKET_NAME}.s3.${s3Config.region}.amazonaws.com/${key}`;
+    } catch (error: any) {
+        console.error('S3 Upload Error:', error);
+        throw new Error(`Failed to upload file to S3: ${error.message}`);
+    }
+};
+
+/**
+ * Upload multiple files to S3
+ */
+export const uploadMultipleToS3 = async (
+    files: Express.Multer.File[],
+    folder: UploadFolder = UploadFolder.MISC
+): Promise<string[]> => {
+    if (!files || files.length === 0) return [];
+
+    const uploadPromises = files.map((file) => uploadToS3(file, folder));
+    return Promise.all(uploadPromises);
+};
+
+/**
+ * Delete a file from S3
+ */
+export const deleteFromS3 = async (fileUrl: string): Promise<boolean> => {
+    if (!isS3Configured()) {
+        console.warn('S3 not configured, skipping delete');
+        return false;
+    }
+
+    try {
+        // Extract key from URL
+        let key = '';
+
+        if (CDN_URL && fileUrl.startsWith(CDN_URL)) {
+            key = fileUrl.replace(`${CDN_URL}/`, '');
+        } else {
+            // Extract from S3 URL
+            const urlPattern = new RegExp(`https://${BUCKET_NAME}\\.s3\\.[^/]+\\.amazonaws\\.com/(.+)`);
+            const match = fileUrl.match(urlPattern);
+            if (match) {
+                key = match[1];
+            }
+        }
+
+        if (!key) {
+            console.warn('Could not extract key from URL:', fileUrl);
+            return false;
+        }
+
+        await s3Client.send(
+            new DeleteObjectCommand({
+                Bucket: BUCKET_NAME,
+                Key: key,
+            })
+        );
+
+        return true;
+    } catch (error: any) {
+        console.error('S3 Delete Error:', error);
+        return false;
+    }
+};
+
+/**
+ * Delete multiple files from S3
+ */
+export const deleteMultipleFromS3 = async (fileUrls: string[]): Promise<void> => {
+    if (!fileUrls || fileUrls.length === 0) return;
+
+    const deletePromises = fileUrls.map((url) => deleteFromS3(url));
+    await Promise.all(deletePromises);
+};
+
+/**
+ * Generate a pre-signed URL for temporary access
+ */
+export const getPresignedUrl = async (
+    key: string,
+    expiresIn: number = 3600 // 1 hour
+): Promise<string> => {
+    if (!isS3Configured()) {
+        throw new Error('S3 not configured');
+    }
+
+    const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+    });
+
+    return getSignedUrl(s3Client, command, { expiresIn });
+};
+
+/**
+ * Upload from base64 string
+ */
+export const uploadBase64ToS3 = async (
+    base64Data: string,
+    filename: string,
+    folder: UploadFolder = UploadFolder.MISC
+): Promise<string> => {
+    if (!isS3Configured()) {
+        console.warn('S3 not configured, returning placeholder URL');
+        return `https://placeholder.com/${folder}/${filename}`;
+    }
+
+    // Remove data:image/xxx;base64, prefix if present
+    const base64String = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64String, 'base64');
+
+    const uniqueFilename = generateUniqueFilename(filename);
+    const key = `${folder}/${uniqueFilename}`;
+    const contentType = getContentType(filename);
+
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+    };
+
+    try {
+        await s3Client.send(new PutObjectCommand(params));
+
+        if (CDN_URL) {
+            return `${CDN_URL}/${key}`;
+        }
+        return `https://${BUCKET_NAME}.s3.${s3Config.region}.amazonaws.com/${key}`;
+    } catch (error: any) {
+        console.error('S3 Upload Error:', error);
+        throw new Error(`Failed to upload base64 to S3: ${error.message}`);
+    }
+};
+
+// Export S3 client for advanced usage
+export { s3Client, BUCKET_NAME };

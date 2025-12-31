@@ -45,4 +45,34 @@ export class ProviderProfileService {
 
         return newOrg;
     }
+
+    async updateOrganization(providerId: string, data: any) {
+        const org = await this.orgModel.findOne({ ownerId: providerId });
+        if (!org) throw new ApiError('Organization not found', 404);
+
+        // Parse data if it comes as strings
+        const updateData = {
+            ...data,
+            location: typeof data.location === 'string' ? JSON.parse(data.location) : data.location,
+            socialMedia: typeof data.socialMedia === 'string' ? JSON.parse(data.socialMedia) : data.socialMedia,
+            businessHours: typeof data.businessHours === 'string' ? JSON.parse(data.businessHours) : data.businessHours,
+            categories: typeof data.categories === 'string' ? JSON.parse(data.categories) : data.categories,
+            updatedAt: new Date(),
+        };
+
+        // Remove undefined values
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] === undefined) {
+                delete updateData[key];
+            }
+        });
+
+        const updatedOrg = await this.orgModel.findByIdAndUpdate(
+            org._id,
+            { $set: updateData },
+            { new: true }
+        );
+
+        return updatedOrg;
+    }
 }

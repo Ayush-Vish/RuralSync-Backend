@@ -14,6 +14,7 @@ export interface IAgent extends Document {
     type: "Point";
     coordinates: number[];
   };
+  profileImage?: string;
   services: string[];
   serviceArea?: string;
   availability?: string;
@@ -59,6 +60,9 @@ const agentSchema = new mongoose.Schema({
   location: {
     type: pointSchema,
     index: '2dsphere',
+  },
+  profileImage: {
+    type: String,
   },
   services: {
     type: [String], // Array of services like coolerRepair, washingMachineRepair

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProviderInventoryService } from '../services/provider-inventory.service';
 import { ApiError } from '../../../utils/helpers';
+import { uploadMultipleToS3, UploadFolder } from '../../../utils/s3';
 
 interface RequestWithUser extends Request {
     user?: { id: string };
@@ -14,9 +15,10 @@ export class ProviderInventoryController {
         try {
             if (!req.user) throw new ApiError('Unauthorized', 401);
 
+            // Upload images to S3
             let imageUrls: string[] = [];
             if (req.files && req.files.images) {
-                imageUrls = req.files.images.map((f: any) => f.location || f.path);
+                imageUrls = await uploadMultipleToS3(req.files.images, UploadFolder.SERVICES);
             }
 
             const data = {

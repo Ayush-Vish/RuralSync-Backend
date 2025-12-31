@@ -169,7 +169,7 @@ const storage = multer.memoryStorage();
 
 // 2. Define Filters (Optional but recommended)
 const fileFilter = (req: any, file: any, cb: any) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'image/gif'];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -186,3 +186,14 @@ export const upload = multer({
     fileSize: 4 * 1024 * 1024, // 4MB Limit (Vercel Serverless limit is ~4.5MB)
   },
 });
+
+// Re-export S3 utilities for convenience
+export {
+  uploadToS3,
+  uploadMultipleToS3,
+  deleteFromS3,
+  deleteMultipleFromS3,
+  uploadBase64ToS3,
+  isS3Configured,
+  UploadFolder
+} from './s3';

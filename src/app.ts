@@ -10,11 +10,11 @@ import providerRoutes from './modules/provider/provider.routes';
 import agentRoutes from './modules/agent/agent.routes';
 
 const app = express();
-
+const MODE = process.env.NODE_ENV || 'development';
 // CORS Origins - Parse from environment or use defaults
 const getAllowedOrigins = (): string[] => {
     const envOrigins = process.env.CORS_ORIGINS;
-    if (envOrigins) {
+    if (MODE === 'production' && envOrigins) {
         return envOrigins.split(',').map(origin => origin.trim());
     }
     // Default origins for local development

@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { AgentService } from '../services/agent.service';
 import { ApiError } from '../../../utils/helpers';
+import { uploadToS3, UploadFolder } from '../../../utils/s3';
 
 interface RequestWithUser extends Request {
     user?: { id: string; name: string };
+    file?: Express.Multer.File;
 }
 
 export class AgentController {
@@ -13,6 +15,25 @@ export class AgentController {
         try {
             const data = await this.agentService.getDashboard(req.user!.id, req.user!.name);
             res.status(200).json({ success: true, data });
+        } catch (error) { next(error); }
+    };
+
+    public uploadProfileImage = async (req: RequestWithUser, res: Response, next: NextFunction) => {
+        try {
+            if (!req.user) throw new ApiError('Unauthorized', 401);
+            if (!req.file) throw new ApiError('No image file provided', 400);
+
+            // Upload to S3
+            const imageUrl = await uploadToS3(req.file, UploadFolder.PROFILES);
+
+            // Update agent profile with image URL
+            const updated = await this.agentService.updateProfile(req.user.id, { profileImage: imageUrl });
+
+            res.status(200).json({
+                success: true,
+                message: "Profile image uploaded successfully",
+                data: { profileImage: imageUrl }
+            });
         } catch (error) { next(error); }
     };
 
